@@ -1,37 +1,67 @@
 version: 2.1
 
+orbs:
+  cypress: cypress-io/cypress@3.3.1
+
 jobs:
-  node-job:
+  cypress-tests:
     docker:
-      - image: cypress/browsers:node-20.11.0-chrome-120.0.6099.109-1
+      - image: cypress/browsers:latest
+
+    working_directory: ~/project
 
     steps:
       - checkout
 
+      # Install dependencies with caching
+      - restore_cache:
+          keys:
+            - v1-deps-{{ checksum "package-lock.json" }}
+            - v1-deps-
+
       - run:
-          name: Install npm packages
+          name: Install dependencies
           command: npm ci
 
-      - run:
-          name: Install Allure CLI
-          command: |
-            curl -sSL https://github.com/allure-framework/allure2/releases/download/2.19.0/allure-2.19.0.zip -o allure.zip
-            unzip allure.zip -d /opt/allure
-            ln -s /opt/allure/allure-2.19.0/bin/allure /usr/bin/allure
+      - save_cache:
+          key: v1-deps-{{ checksum "package-lock.json" }}
+          paths:
+            - ~/.npm
+            - ~/.cache
 
+      # Install Allure CLI
+      - run:
+          name: Install Allure
+          command: |
+            curl -sSL https://github.com/allure-framework/allure2/releases/latest/download/allure-2.27.0.zip -o allure.zip
+            unzip allure.zip -d /opt/allure
+            ln -sf /opt/allure/allure-2.27.0/bin/allure /usr/bin/allure
+
+      # Run Cypress tests
       - run:
           name: Run Cypress tests
           command: npx cypress run
 
+      # Generate Allure report
       - run:
           name: Generate Allure report
           command: npm run allure:report
 
+      # Store Cypress artifacts (videos, screenshots)
+      - store_artifacts:
+          path: cypress/videos
+          destination: videos
+
+      - store_artifacts:
+          path: cypress/screenshots
+          destination: screenshots
+
+      # Store Allure report
       - store_artifacts:
           path: allure-report
-          destination: CypressReport
+          destination: allure-report
 
 workflows:
   build-and-test:
     jobs:
-      - node-job
+      - cypress-tests
