@@ -3,7 +3,7 @@ version: 2.1
 jobs:
   node-job:
     docker:
-      - image: cypress/browsers:node-20.17.0-chrome-124.0.6367.207-1-ff-125.0.3-edge-124.0.2478.51-1
+      - image: cypress/browsers:node-20.11.0-chrome-120.0.6099.109-1
 
     steps:
       - checkout
@@ -13,18 +13,18 @@ jobs:
           command: npm ci
 
       - run:
-          name: Install Allure
+          name: Install Allure CLI
           command: |
             curl -sSL https://github.com/allure-framework/allure2/releases/download/2.19.0/allure-2.19.0.zip -o allure.zip
             unzip allure.zip -d /opt/allure
             ln -s /opt/allure/allure-2.19.0/bin/allure /usr/bin/allure
 
       - run:
-          name: Run tests
+          name: Run Cypress tests
           command: npx cypress run
 
       - run:
-          name: Generate report
+          name: Generate Allure report
           command: npm run allure:report
 
       - store_artifacts:
